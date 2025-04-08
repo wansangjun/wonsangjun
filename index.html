@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>로켓 포물선 미션</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: radial-gradient(circle at center, #000011, #000000);
+    }
+
+    .ui {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px 20px;
+      border-radius: 12px;
+      color: white;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .ui input {
+      width: 60px;
+      padding: 4px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    .ui button {
+      background: #1abc9c;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #game-over {
+      position: absolute;
+      top: 35%;
+      width: 100%;
+      text-align: center;
+      font-size: 40px;
+      color: white;
+      display: none;
+    }
+
+    #restart {
+      margin-top: 20px;
+      font-size: 20px;
+      background: #e74c3c;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <label>각도:
+      <input type="number" id="angle" value="45">
+    </label>
+    <label>속도:
+      <input type="number" id="speed" value="50">
+    </label>
+    <button onclick="fire()">발사 🚀</button>
+    <span id="score">점수: 0</span>
+    <span id="shots">남은 기회: 5</span>
+  </div>
+
+  <div id="game-over">
+    <div id="final-msg">🎯 게임 오버</div>
+    <button id="restart" onclick="restart()">다시하기</button>
+  </div>
+
+  <canvas id="game" width="900" height="500"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    let score = 0;
+    let shotsLeft = 5;
+    const g = 9.8;
+    let rocket = null;
+
+    let star = {
+      x: Math.random() * 500 + 300,
+      y: 380,
+      r: 15,
+      dx: 2 + Math.random()
+    };
+
+    const stars = [];
+    for (let i = 0; i < 80; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.5 + 0.5
+      });
+    }
+
+    function drawStars() {
+      ctx.fillStyle = "white";
+      for (let s of stars) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    }
+
+    function fire() {
+      if (rocket || shotsLeft <= 0) return;
+      const angleDeg = parseFloat(document.getElementById("angle").value);
+      const speed = parseFloat(document.getElementById("speed").value);
+      const angle = angleDeg * Math.PI / 180;
+
+      rocket = {
+        x: 50,
+        y: 400,
+        vx: speed * Math.cos(angle),
+        vy: -speed * Math.sin(angle),
+        t: 0
+      };
+      shotsLeft--;
+      document.getElementById("shots").textContent = `남은 기회: ${shotsLeft}`;
+    }
+
+    function drawRocket(x, y) {
+      ctx.fillStyle = "cyan";
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    function drawStar() {
+      ctx.fillStyle = "yellow";
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.r, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawStars();
+
+      ctx.fillStyle = "#10ac84";
+      ctx.fillRect(0, 420, canvas.width, 80); // 지면
+
+      drawStar();
+
+      // 움직이는 별
+      star.x += star.dx;
+      if (star.x > canvas.width - 20 || star.x < 300) {
+        star.dx *= -1;
+      }
+
+      if (rocket) {
+        rocket.t += 0.05;
+        rocket.x = 50 + rocket.vx * rocket.t;
+        rocket.y = 400 + rocket.vy * rocket.t + 0.5 * g * rocket.t ** 2;
+
+        drawRocket(rocket.x, rocket.y);
+
+        const dx = rocket.x - star.x;
+        const dy = rocket.y - star.y;
+
+        if (Math.sqrt(dx ** 2 + dy ** 2) < star.r + 6) {
+          score++;
+          document.getElementById("score").textContent = `점수: ${score}`;
+          rocket = null;
+          star.x = Math.random() * 500 + 300;
+        } else if (rocket.y > canvas.height || rocket.x > canvas.width) {
+          rocket = null;
+        }
+      }
+
+      if (shotsLeft === 0 && !rocket) {
+        document.getElementById("game-over").style.display = "block";
+        document.getElementById("final-msg").textContent = `🎯 게임 오버\n점수: ${score}`;
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    function restart() {
+      score = 0;
+      shotsLeft = 5;
+      rocket = null;
+      document.getElementById("score").textContent = "점수: 0";
+      document.getElementById("shots").textContent = "남은 기회: 5";
+      document.getElementById("game-over").style.display = "none";
+    }
+
+    update();
+  </script>
+</body>
+</html>
